@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AWS T5 Bot</title>
+</head>
+    <body bgcolor=#F0F8FF>
+        <table style="width:100%">
+            <tr>
+                <td>
+                    <center>
+                        <h1 style="font-family:verdana;font-size:250%;color:Red;">AWS T5 Bot</h1><br>
+                        <form method="POST" action = "{{url_for('web_prediction')}}">
+                            <b>
+                                Question: <input type="text", name="question", placeholder="Question"/><br><br>
+                            </b>
+                            <button type="submit" class="btn btn-primary btn-block btn-large">Predict</button>
+                        </form>
+                    </center>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

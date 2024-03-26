@@ -1,0 +1,13 @@
+auto-gptq==0.2.2
+optimum==1.13.1
+xformers==0.0.21
+accelerate==0.23.0
+openai==0.28.0
+chromadb==0.4.0
+langchain==0.0.288
+tiktoken==0.5.1
+pypdf==3.16.0
+faiss-cpu==1.7.4
+transformers==4.33.1
+pysqlite3-binary==0.5.1
+sentence-transformers==2.2.2

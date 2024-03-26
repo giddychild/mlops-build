@@ -1,0 +1,11 @@
+tensorflow
+keras
+Keras-Preprocessing
+textblob
+numpy
+pandas
+scikit-learn
+flask
+gunicorn
+gensim
+nltk

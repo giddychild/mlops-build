@@ -1,0 +1,151 @@
+options:
+  docker: true
+  size: 2x 
+
+definitions:
+  services:
+    docker-with-more-memory:
+      memory: 4096
+      type: docker
+  steps:
+    - step: &app-name
+        runs-on:
+          - self.hosted
+          - linux
+        name: Get Image Name
+        image: google/cloud-sdk:alpine
+        script:
+            - chmod a+x ./scripts/app_changes.sh
+            - ./scripts/app_changes.sh $BITBUCKET_COMMIT
+            - echo "Apps changed:"
+            - cat files_changed.txt
+        artifacts:
+          - files_changed.txt
+
+    - step: &build-image
+        runs-on:
+          - self.hosted
+          - linux
+        name: Build image
+        image: google/cloud-sdk:alpine
+        services: [docker-with-more-memory]
+        script:
+            - export DOCKER_BUILDKIT=0
+            - chmod a+x ./scripts/build_image.sh
+            - ./scripts/build_image.sh
+        artifacts:
+          - tmp-image-*.docker
+
+    - step: &package-files
+        runs-on:
+          - self.hosted
+          - linux
+        name: Package files
+        image: google/cloud-sdk:alpine
+        services: [docker-with-more-memory]
+        script:
+            - chmod a+x ./scripts/package_files.sh
+            - ./scripts/package_files.sh
+            - echo "Apps changed:"
+            - cat files_changed.txt            
+        artifacts:
+          - files_changed.txt
+    
+    - step: &build-images-k8s
+        runs-on:
+          - self.hosted
+          - linux
+        name: Build images K8s
+        image: gcr.io/google.com/cloudsdktool/google-cloud-cli
+        services: [docker-with-more-memory]
+        script:
+            - export COMPUTE_ZONE="northamerica-northeast1"
+            - export CLUSTER_NAME="srcd-mlops-dev-kubeflow"
+            - chmod a+x ./scripts/build_image_k8s.sh
+            - ./scripts/build_image_k8s.sh
+
+    - step: &build-image-aws
+        runs-on:
+          - self.hosted
+          - linux
+        name: Build AWS image
+        image: amazon/aws-cli:latest
+        services: [docker-with-more-memory]
+        script:
+            - export DOCKER_BUILDKIT=0
+            - chmod a+x ./scripts/build_image_aws.sh
+            - ./scripts/build_image_aws.sh
+        artifacts:
+          - tmp-image-*.docker
+
+    - step: &scan-image
+        services:
+          - docker
+        runs-on:
+          - self.hosted
+          - linux
+        name: Scan Image
+        image: google/cloud-sdk:alpine
+        script:
+            - chmod a+x ./scripts/scan_image.sh
+            - ./scripts/scan_image.sh
+  
+    - step: &push-image
+        runs-on:
+          - self.hosted
+          - linux    
+        name: Push Image into Registry
+        image: google/cloud-sdk:alpine
+        script:
+            - chmod a+x ./scripts/push_image.sh
+            - ./scripts/push_image.sh
+    
+    - step: &push-image-aws
+        runs-on:
+          - self.hosted
+          - linux    
+        name: Push Image into AWS Registry
+        image: amazon/aws-cli:latest
+        services: [docker-with-more-memory]
+        script:
+            - chmod a+x ./scripts/push_image_aws.sh
+            - ./scripts/push_image_aws.sh
+
+pipelines:
+  branches:
+    main:
+      - step: *package-files
+      - step: *build-images-k8s
+      # - step: *scan-image
+      # - step: *push-image
+
+    feature/*:
+      # - step: *app-name
+      - step: *package-files
+      - step: *build-images-k8s
+      # - step: *scan-image
+      # - step: *push-image
+
+  custom:
+    apps:
+      - variables:
+          - name: PIPELINE_APP_NAME
+            default: null
+          - name: TAG
+            default: null
+      # - step: *app-name
+      - step: *package-files
+      - step: *build-images-k8s
+      # - step: *scan-image
+      # - step: *push-image
+    
+    apps-aws:
+      - variables:
+          - name: PIPELINE_APP_NAME
+            default: null
+          - name: TAG
+            default: null
+      - step: *app-name
+      - step: *build-image-aws
+      # - step: *scan-image
+      - step: *push-image-aws
